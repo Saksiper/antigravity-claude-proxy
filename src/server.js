@@ -76,7 +76,10 @@ async function ensureInitialized() {
 }
 
 // Middleware
-app.use(cors());
+app.use(cors({
+    origin: config.corsOrigins || true,
+    credentials: true
+}));
 app.use(express.json({ limit: REQUEST_BODY_LIMIT }));
 
 // API Key authentication middleware for /v1/* endpoints
@@ -219,12 +222,15 @@ app.post('/', (req, res) => {
 /**
  * Test endpoint - Clear thinking signature cache
  * Used for testing cold cache scenarios in cross-model tests
+ * Disabled in production for security
  */
-app.post('/test/clear-signature-cache', (req, res) => {
-    clearThinkingSignatureCache();
-    logger.debug('[Test] Cleared thinking signature cache');
-    res.json({ success: true, message: 'Thinking signature cache cleared' });
-});
+if (process.env.NODE_ENV !== 'production') {
+    app.post('/test/clear-signature-cache', (req, res) => {
+        clearThinkingSignatureCache();
+        logger.debug('[Test] Cleared thinking signature cache');
+        res.json({ success: true, message: 'Thinking signature cache cleared' });
+    });
+}
 
 /**
  * Health check endpoint - Detailed status
@@ -640,7 +646,7 @@ app.post('/refresh-token', async (req, res) => {
         res.json({
             status: 'ok',
             message: 'Token caches cleared and refreshed',
-            tokenPrefix: token.substring(0, 10) + '...'
+            tokenPrefix: '***masked***'
         });
     } catch (error) {
         res.status(500).json({

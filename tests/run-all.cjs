@@ -24,7 +24,9 @@ const tests = [
     { name: 'Streaming Whitespace', file: 'test-streaming-whitespace.cjs' },
     { name: '403 Account Rotation (Unit)', file: 'test-403-account-rotation.cjs' },
     { name: '403 Account Rotation (Integration)', file: 'test-403-integration.cjs' },
-    { name: 'Version Detection', file: 'test-version-detection.js' }
+    { name: 'Version Detection', file: 'test-version-detection.js' },
+    { name: 'Hardening Regression (Unit)', file: 'test-hardening-regression.cjs' },
+    { name: 'Compatibility Regression (Integration)', file: 'test-compatibility-regression.cjs' }
 ];
 
 async function runTest(test) {

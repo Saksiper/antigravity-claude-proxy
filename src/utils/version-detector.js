@@ -67,8 +67,8 @@ function getVersionConfig() {
 }
 
 /**
- * Generate a simplified User-Agent string used by the Antigravity binary.
- * Format: "antigravity/version os/arch"
+ * Generate a User-Agent string with actual runtime information.
+ * Format: "antigravity/version os/arch node/version"
  * @returns {string} The User-Agent string
  */
 export function generateSmartUserAgent() {
@@ -77,11 +77,12 @@ export function generateSmartUserAgent() {
     const { version } = getVersionConfig();
     const os = platform();
     const architecture = process.arch;
+    const nodeVersion = process.version.replace('v', '');
 
     // Map Node.js platform names to binary-friendly names
     const osName = os === 'darwin' ? 'darwin' : (os === 'win32' ? 'win32' : 'linux');
 
-    cachedUserAgent = `antigravity/${version} ${osName}/${architecture}`;
+    cachedUserAgent = `antigravity/${version} ${osName}/${architecture} node/${nodeVersion}`;
     return cachedUserAgent;
 }
 

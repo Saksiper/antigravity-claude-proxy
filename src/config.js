@@ -53,6 +53,8 @@ const DEFAULT_CONFIG = {
     switchAccountDelayMs: 5000,    // Delay before switching accounts on rate limit
     capacityBackoffTiersMs: [5000, 10000, 20000, 30000, 60000], // Progressive backoff tiers for capacity exhaustion
     modelMapping: {},
+    corsOrigins: true,             // true = all origins (dev), or array of allowed origins e.g. ['http://localhost:8080']
+    fetchTimeoutMs: 120000,        // 120s timeout for upstream API calls (0 = no timeout)
     // Account selection strategy configuration
     accountSelection: {
         strategy: 'hybrid',           // 'sticky' | 'round-robin' | 'hybrid'

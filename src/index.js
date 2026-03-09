@@ -54,7 +54,7 @@ if (isFallbackEnabled) {
 export const FALLBACK_ENABLED = isFallbackEnabled;
 
 const PORT = process.env.PORT || DEFAULT_PORT;
-const HOST = process.env.HOST || '0.0.0.0';
+const HOST = process.env.HOST || '127.0.0.1';
 
 if (process.env.HOST) {
     logger.info(`[Startup] Using HOST environment variable: ${process.env.HOST}`);
@@ -111,7 +111,7 @@ const server = app.listen(PORT, HOST, () => {
 
     const environmentSection = `║  Environment Variables:                                      ║
 ║    PORT                Server port (default: 8080)           ║
-║    HOST                Bind address (default: 0.0.0.0)       ║
+║    HOST                Bind address (default: 127.0.0.1)      ║
 ║    HTTP_PROXY          Route requests through a proxy        ║
 ║    CLAUDE_CONFIG_PATH  Path to .claude dir (for systemd)     ║
 ║    See README.md for detailed configuration examples         ║`
@@ -175,3 +175,12 @@ const shutdown = () => {
 
 process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
+
+// Catch unhandled errors to prevent silent crashes (Node.js >= 17 crashes on these)
+process.on('unhandledRejection', (reason, promise) => {
+    logger.error('[Process] Unhandled promise rejection:', reason);
+});
+process.on('uncaughtException', (err) => {
+    logger.error('[Process] Uncaught exception — initiating shutdown:', err);
+    shutdown();
+});

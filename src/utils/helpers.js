@@ -74,19 +74,35 @@ export function isNetworkError(error) {
 
 /**
  * Throttled fetch that applies a configurable delay before each request
+ * Includes timeout via AbortController to prevent indefinite hangs
  * Only applies delay when requestThrottlingEnabled is true
  * @param {string|URL} url - The URL to fetch
  * @param {RequestInit} [options] - Fetch options
  * @returns {Promise<Response>} Fetch response
  */
-export async function throttledFetch(url, options) {
+export async function throttledFetch(url, options = {}) {
     if (config.requestThrottlingEnabled) {
         const delayMs = config.requestDelayMs || 200;
         if (delayMs > 0) {
             await sleep(delayMs);
         }
     }
-    return fetch(url, options);
+
+    // Add timeout via AbortController (default 120s) to prevent indefinite hangs
+    const timeoutMs = config.fetchTimeoutMs || 120000;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+    // If the caller already provided a signal, listen for its abort too
+    if (options.signal) {
+        options.signal.addEventListener('abort', () => controller.abort(), { once: true });
+    }
+
+    try {
+        return await fetch(url, { ...options, signal: controller.signal });
+    } finally {
+        clearTimeout(timeoutId);
+    }
 }
 
 /**
