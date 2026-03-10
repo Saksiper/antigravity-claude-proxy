@@ -21,6 +21,7 @@ import { clearThinkingSignatureCache } from './format/signature-cache.js';
 import { formatDuration } from './utils/helpers.js';
 import { logger } from './utils/logger.js';
 import usageStats from './modules/usage-stats.js';
+import { trackRequest, getSessionReport, getTextReport, resetSession } from './modules/session-tracker.js';
 
 // Parse fallback flag directly from command line args to avoid circular dependency
 const args = process.argv.slice(2);
@@ -792,6 +793,9 @@ app.post('/v1/messages', async (req, res) => {
 
         logger.info(`[API] Request for model: ${request.model}, stream: ${!!stream}`);
 
+        // Track request timing for session report
+        const requestStartTime = Date.now();
+
         // Debug: Log message structure to diagnose tool_use/tool_result ordering
         if (logger.isDebugEnabled) {
             logger.debug('[API] Message structure:');
@@ -839,6 +843,15 @@ app.post('/v1/messages', async (req, res) => {
                 
                 res.end();
 
+                // Track successful streaming request
+                trackRequest({
+                    model: request.model,
+                    account: accountManager.getLastUsedAccountEmail(),
+                    stream: true,
+                    status: 200,
+                    latencyMs: Date.now() - requestStartTime
+                });
+
             } catch (error) {
                 // If we haven't sent headers yet, we can send a proper error status
                 if (!res.headersSent) {
@@ -851,6 +864,16 @@ app.post('/v1/messages', async (req, res) => {
                             type: errorType,
                             message: errorMessage
                         }
+                    });
+
+                    // Track failed streaming request (pre-header)
+                    trackRequest({
+                        model: request.model,
+                        account: accountManager.getLastUsedAccountEmail(),
+                        stream: true,
+                        status: statusCode,
+                        latencyMs: Date.now() - requestStartTime,
+                        errorType
                     });
                 }
                 
@@ -870,6 +893,15 @@ app.post('/v1/messages', async (req, res) => {
             // Handle non-streaming response
             const response = await sendMessage(request, accountManager, FALLBACK_ENABLED);
             res.json(response);
+
+            // Track successful non-streaming request
+            trackRequest({
+                model: request.model,
+                account: accountManager.getLastUsedAccountEmail(),
+                stream: false,
+                status: 200,
+                latencyMs: Date.now() - requestStartTime
+            });
         }
 
     } catch (error) {
@@ -910,6 +942,23 @@ app.post('/v1/messages', async (req, res) => {
             });
         }
     }
+});
+
+/**
+ * Session Report Endpoints
+ */
+app.get('/api/session-report', (req, res) => {
+    const format = req.query.format;
+    if (format === 'text') {
+        res.setHeader('Content-Type', 'text/plain; charset=utf-8');
+        return res.send(getTextReport());
+    }
+    res.json(getSessionReport());
+});
+
+app.post('/api/session-reset', (req, res) => {
+    resetSession();
+    res.json({ status: 'ok', message: 'Session tracking reset' });
 });
 
 /**

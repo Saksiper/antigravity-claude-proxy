@@ -44,6 +44,7 @@ export class AccountManager {
     #initialized = false;
     #strategy = null;
     #strategyName = DEFAULT_STRATEGY;
+    #lastUsedAccountEmail = null;
 
     // Per-account caches
     #tokenCache = new Map(); // email -> { token, extractedAt }
@@ -189,6 +190,9 @@ export class AccountManager {
         });
 
         this.#currentIndex = result.index;
+        if (result.account?.email) {
+            this.#lastUsedAccountEmail = result.account.email;
+        }
         return { account: result.account, waitMs: result.waitMs || 0 };
     }
 
@@ -263,6 +267,15 @@ export class AccountManager {
      */
     getStrategyLabel() {
         return getStrategyLabel(this.#strategyName);
+    }
+
+    /**
+     * Get the email of the last account used for a request.
+     * Used by session-tracker to attribute requests to accounts.
+     * @returns {string|null} Email or null if no request has been made
+     */
+    getLastUsedAccountEmail() {
+        return this.#lastUsedAccountEmail;
     }
 
     /**
